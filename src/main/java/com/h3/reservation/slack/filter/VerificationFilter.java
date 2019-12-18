@@ -34,7 +34,6 @@ public class VerificationFilter implements Filter {
     @Override
     public void doFilter(ServletRequest req, ServletResponse res, FilterChain filterChain)
             throws IOException, ServletException {
-        req.setCharacterEncoding("UTF-8");
         CachedRequestWrapper wrapper = new CachedRequestWrapper((HttpServletRequest) req);
         String timestamp = wrapper.getHeader("X-Slack-Request-Timestamp");
         String requestBody = wrapper.getBody();

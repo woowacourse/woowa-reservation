@@ -30,6 +30,6 @@ out/
 
 ### VS Code ###
 .vscode/
-*credentials.json
+#*credentials.json
 *StoredCredential
 *.DS_Store

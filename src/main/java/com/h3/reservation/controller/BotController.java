@@ -15,8 +15,6 @@ import com.h3.reservation.slack.dto.response.ModalClearResponse;
 import com.h3.reservation.slack.dto.response.ModalSubmissionResponse;
 import com.h3.reservation.slack.dto.response.ModalSubmissionType;
 import com.h3.reservation.slack.service.SlackService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -25,20 +23,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Optional;
 
-/**
- * @author heebg
- * @version 1.0
- * @date 2019-12-02
- */
 @RestController
 public class BotController {
-    private static final Logger logger = LoggerFactory.getLogger(BotController.class);
-
-    private static final String TYPE = "type";
-    private static final String PAYLOAD = "payload";
-
+    private static final ModalSubmissionResponse MODAL_CLEAR_RESPONSE = new ModalClearResponse();
     private final ObjectMapper objectMapper;
     private final SlackService service;
 
@@ -49,29 +38,29 @@ public class BotController {
 
     @PostMapping("/slack/action")
     public ResponseEntity<String> action(@RequestBody JsonNode reqJson) throws JsonProcessingException {
-        switch (RequestType.of(reqJson.get(TYPE).asText())) {
+        switch (RequestType.of(reqJson.get("type").asText())) {
             case URL_VERIFICATION:
                 return ResponseEntity.ok(service.verify(jsonToDto(reqJson, VerificationRequest.class)));
             case EVENT_CALLBACK:
                 service.showMenu(jsonToDto(reqJson, EventCallbackRequest.class));
                 return ResponseEntity.ok().build();
-            default:
-                return ResponseEntity.badRequest().build();
         }
+        return ResponseEntity.badRequest().build();
     }
 
     @PostMapping(value = "/slack/interaction")
     public ResponseEntity<?> interaction(@RequestParam Map<String, String> req) throws IOException {
-        JsonNode reqJson = objectMapper.readTree(req.get(PAYLOAD));
-        switch (RequestType.of(reqJson.get(TYPE).asText())) {
+        JsonNode reqJson = objectMapper.readTree(req.get("payload"));
+        switch (RequestType.of(reqJson.get("type").asText())) {
             case BLOCK_ACTIONS:
                 service.showModal(jsonToDto(reqJson, BlockActionRequest.class));
                 return ResponseEntity.ok().build();
             case VIEW_SUBMISSION:
-                return ResponseEntity.ok(Objects.requireNonNull(generateModalSubmissionResponse(reqJson)));
-            default:
-                return ResponseEntity.badRequest().build();
+                return Optional.ofNullable(generateModalSubmissionResponse(reqJson))
+                                .map(ResponseEntity::ok)
+                                .orElseGet(() -> ResponseEntity.badRequest().build());
         }
+        return ResponseEntity.badRequest().build();
     }
 
     private ModalSubmissionResponse generateModalSubmissionResponse(JsonNode reqJson) throws IOException {
@@ -87,7 +76,7 @@ public class BotController {
             case CANCEL_REQUEST:
                 return service.updateCancelRequestModal(jsonToDto(reqJson, CancelRequest.class));
         }
-        return new ModalClearResponse();
+        return MODAL_CLEAR_RESPONSE;
     }
 
     private <T> T jsonToDto(JsonNode json, Class<T> type) throws JsonProcessingException {

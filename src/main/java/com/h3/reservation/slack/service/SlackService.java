@@ -67,14 +67,12 @@ public class SlackService {
     }
 
     public void showMenu(EventCallbackRequest dto) {
-        String postUrl;
         switch (EventType.of(dto.getType())) {
             case APP_MENTION:
-                postUrl = "/chat.postMessage";
-                send(postUrl, InitResponseFactory.of(dto.getChannel()));
+                send("/chat.postMessage", InitResponseFactory.of(dto.getChannel()));
+                break;
             case APP_HOME_OPENED:
-                postUrl = "/views.publish";
-                send(postUrl, InitHomeTabResponseFactory.of(dto.getUserId()));
+                send("/views.publish", InitHomeTabResponseFactory.of(dto.getUserId()));
         }
     }
 
